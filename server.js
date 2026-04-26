@@ -96,5 +96,9 @@ setInterval(scrapeScores, 30000);
 // initial load
 scrapeScores();
 
+app.get("/", (req, res) => {
+  res.send("MaxPreps API is running");
+});
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log("Live on", PORT));
