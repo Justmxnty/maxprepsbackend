@@ -4,22 +4,9 @@ const cors = require("cors");
 const app = express();
 app.use(cors());
 
-/*
-  MASTER CACHE (ESPN STRUCTURE)
-*/
-let cache = {
-  live: [],
-  final: [],
-  scheduled: [],
-  lastUpdated: null
-};
-
-/*
-  🔥 TEMP DATA (replace later with MaxPreps scraping)
-  This keeps your API WORKING immediately
-*/
-function loadMockData() {
-  cache.live = [
+// TEST DATA (so Squarespace ALWAYS shows something)
+const data = {
+  live: [
     {
       home: "Duncanville",
       away: "Allen",
@@ -30,9 +17,8 @@ function loadMockData() {
       city: "Dallas",
       classification: "6A"
     }
-  ];
-
-  cache.final = [
+  ],
+  final: [
     {
       home: "Lake Travis",
       away: "Westlake",
@@ -41,53 +27,29 @@ function loadMockData() {
       city: "Austin",
       classification: "6A"
     }
-  ];
-
-  cache.scheduled = [
+  ],
+  scheduled: [
     {
       home: "Judson",
       away: "Steele",
       city: "San Antonio",
       classification: "6A"
     }
-  ];
+  ]
+};
 
-  cache.lastUpdated = new Date().toISOString();
-}
-
-/*
-  ROOT (fixes "Cannot GET /")
-*/
+// ROOT CHECK
 app.get("/", (req, res) => {
   res.send("Texas HS Football API is running");
 });
 
-/*
-  MAIN ENDPOINT (Squarespace uses this)
-*/
+// ✅ THIS IS WHAT SQUARESPACE NEEDS
 app.get("/scores", (req, res) => {
-  res.json(cache);
+  res.json(data);
 });
 
-/*
-  REFRESH DATA FUNCTION
-  (later you replace this with MaxPreps scraping)
-*/
-function refreshData() {
-  loadMockData();
-  console.log("API updated:", cache.lastUpdated);
-}
-
-/*
-  AUTO REFRESH
-*/
-refreshData();
-setInterval(refreshData, 15000);
-
-/*
-  START SERVER (Render-safe)
-*/
+// IMPORTANT FOR RENDER
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log("API running on port", PORT);
+  console.log("Server running on port", PORT);
 });
