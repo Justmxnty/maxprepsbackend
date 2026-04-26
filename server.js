@@ -1,104 +1,93 @@
 const express = require("express");
-const axios = require("axios");
-const cheerio = require("cheerio");
 const cors = require("cors");
 
 const app = express();
 app.use(cors());
 
+/*
+  MASTER CACHE (ESPN STRUCTURE)
+*/
 let cache = {
-  games: [],
+  live: [],
+  final: [],
+  scheduled: [],
   lastUpdated: null
 };
 
-// 🔥 YOUR TARGET MARKETS
-const TARGET_CITIES = ["san antonio", "austin", "temple", "dallas", "houston"];
+/*
+  🔥 TEMP DATA (replace later with MaxPreps scraping)
+  This keeps your API WORKING immediately
+*/
+function loadMockData() {
+  cache.live = [
+    {
+      home: "Duncanville",
+      away: "Allen",
+      homeScore: 28,
+      awayScore: 21,
+      quarter: "Q3",
+      timeLeft: "6:42",
+      city: "Dallas",
+      classification: "6A"
+    }
+  ];
 
-// (optional but recommended)
-const VALID_6A_5A = [
-  "allen", "duncanville", "north shore", "lake travis",
-  "westlake", "judson", "steele", "de soto"
-];
+  cache.final = [
+    {
+      home: "Lake Travis",
+      away: "Westlake",
+      homeScore: 17,
+      awayScore: 21,
+      city: "Austin",
+      classification: "6A"
+    }
+  ];
 
-async function scrapeScores() {
-  try {
-    const url = "https://www.maxpreps.com/scoreboard/football/texas/";
+  cache.scheduled = [
+    {
+      home: "Judson",
+      away: "Steele",
+      city: "San Antonio",
+      classification: "6A"
+    }
+  ];
 
-    const { data } = await axios.get(url, {
-      headers: { "User-Agent": "Mozilla/5.0" }
-    });
-
-    const $ = cheerio.load(data);
-    let games = [];
-
-    $(".game, .contest").each((i, el) => {
-      const home = $(el).find(".home .name, .team.home .name").text().trim();
-      const away = $(el).find(".away .name, .team.away .name").text().trim();
-
-      const homeScore = $(el).find(".home .score, .team.home .score").text().trim() || "0";
-      const awayScore = $(el).find(".away .score, .team.away .score").text().trim() || "0";
-
-      if (!home || !away) return;
-
-      // ✅ FILTER: 5A / 6A (basic version)
-      if (!isValidTeam(home) && !isValidTeam(away)) return;
-
-      // ✅ FILTER: Regions
-      if (!isTargetCity(home) && !isTargetCity(away)) return;
-
-      games.push({
-        home,
-        away,
-        homeScore,
-        awayScore,
-        homeLogo: getLogo(home),
-        awayLogo: getLogo(away)
-      });
-    });
-
-    cache.games = games;
-    cache.lastUpdated = new Date();
-
-    console.log("Updated:", games.length);
-
-  } catch (err) {
-    console.error("Scrape failed:", err.message);
-  }
+  cache.lastUpdated = new Date().toISOString();
 }
 
-function isTargetCity(name) {
-  return TARGET_CITIES.some(city =>
-    name.toLowerCase().includes(city)
-  );
-}
-
-function isValidTeam(name) {
-  return VALID_6A_5A.some(team =>
-    name.toLowerCase().includes(team)
-  );
-}
-
-function getLogo(team) {
-  return `https://yourdomain.com/logos/${team.replace(/\s/g, "").toLowerCase()}.png`;
-}
-
-// ✅ MAIN ENDPOINT (Squarespace will call this)
-app.get("/scores", async (req, res) => {
-  res.json({
-    updated: cache.lastUpdated,
-    games: cache.games
-  });
-});
-
-// auto-refresh every 30 sec
-setInterval(scrapeScores, 30000);
-
-// initial load
-scrapeScores();
-
+/*
+  ROOT (fixes "Cannot GET /")
+*/
 app.get("/", (req, res) => {
-  res.send("MaxPreps API is running");
+  res.send("Texas HS Football API is running");
 });
 
+/*
+  MAIN ENDPOINT (Squarespace uses this)
+*/
+app.get("/scores", (req, res) => {
+  res.json(cache);
+});
+
+/*
+  REFRESH DATA FUNCTION
+  (later you replace this with MaxPreps scraping)
+*/
+function refreshData() {
+  loadMockData();
+  console.log("API updated:", cache.lastUpdated);
+}
+
+/*
+  AUTO REFRESH
+*/
+refreshData();
+setInterval(refreshData, 15000);
+
+/*
+  START SERVER (Render-safe)
+*/
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log("Live on", PORT));
+app.listen(PORT, () => {
+  console.log("API running on port", PORT);
+});
